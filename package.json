@@ -1,0 +1,12 @@
+{
+  "name": "clinicaltrial-vghtpe-refactor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Public-safe refactor workspace for a clinical trial parsing, classification, and search system.",
+  "scripts": {
+    "test": "node tests/search-core.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
