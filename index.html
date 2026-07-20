@@ -3,154 +3,122 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Clinical Trial Search Refactor Demo</title>
-  <style>
-    :root { color-scheme: light; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    body { margin: 0; background: #f5f7fb; color: #172033; }
-    main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 56px; }
-    h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); }
-    .subtitle { margin: 0 0 24px; color: #5c667a; line-height: 1.6; }
-    .panel { background: white; border: 1px solid #dfe4ee; border-radius: 18px; padding: 18px; box-shadow: 0 8px 30px rgba(20, 33, 61, .06); }
-    .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
-    input { flex: 1 1 360px; min-width: 0; font: inherit; padding: 13px 15px; border: 1px solid #bfc8d8; border-radius: 12px; }
-    button { font: inherit; border: 1px solid #bfc8d8; background: #fff; border-radius: 999px; padding: 9px 13px; cursor: pointer; }
-    button:hover { background: #eef3ff; }
-    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-    .meta { display: flex; justify-content: space-between; gap: 12px; margin: 22px 2px 12px; color: #5c667a; }
-    .grid { display: grid; gap: 14px; }
-    .card { background: white; border: 1px solid #dfe4ee; border-radius: 16px; padding: 17px; }
-    .code { font-weight: 750; letter-spacing: .03em; }
-    .title { font-size: 18px; font-weight: 700; margin: 5px 0 10px; }
-    .badge { display: inline-flex; border-radius: 999px; padding: 5px 9px; margin: 0 6px 6px 0; background: #eef3ff; color: #244b94; font-size: 13px; }
-    .evidence { margin-top: 10px; background: #f7f9fc; border-left: 4px solid #7896cf; padding: 10px 12px; border-radius: 8px; line-height: 1.55; }
-    .label { font-size: 12px; text-transform: uppercase; color: #66728a; letter-spacing: .06em; }
-    .empty { text-align: center; color: #6a7384; padding: 42px 12px; }
-    code { background: #eef1f6; padding: 2px 5px; border-radius: 5px; }
-  </style>
+  <meta name="description" content="Public-safe clinical trial parsing, classification, search, and import review workspace.">
+  <title>Clinical Trial Refactor Workspace</title>
+  <link rel="stylesheet" href="./css/app.css">
 </head>
 <body>
-<main>
-  <h1>Clinical Trial Search Refactor</h1>
-  <p class="subtitle">公開安全測試版。資料皆為合成範例，用來驗證 HER2 語意搜尋、inclusion／exclusion context 與命中理由。</p>
-
-  <section class="panel">
-    <div class="search-row">
-      <input id="query" value="HER2" aria-label="Search trials" placeholder="例如：HER2+、HER2 negative、HER2 low、HER2 non-positive">
+  <header class="app-header">
+    <div class="header-inner">
+      <div>
+        <p class="eyebrow">Clinical Trial VGH-TPE Refactor</p>
+        <h1>臨床試驗搜尋與匯入工作台</h1>
+        <p class="header-copy">以合成資料測試新的資料正規化、臨床分類、語意搜尋、匯入審查與本機保存架構。</p>
+      </div>
+      <div class="version-pill">Public test v0.2</div>
     </div>
-    <div class="chips" id="chips"></div>
-  </section>
+  </header>
 
-  <div class="meta"><span id="summary"></span><span id="parsed"></span></div>
-  <section id="results" class="grid"></section>
-</main>
+  <main class="app-shell">
+    <section class="toolbar" aria-label="搜尋與篩選">
+      <div class="search-row">
+        <input id="searchInput" class="search-input" type="search" placeholder="搜尋 trial code、癌別、藥物、PI，或輸入 HER2+ / HER2 low…" autocomplete="off">
+        <button id="clearSearchButton" class="ghost" type="button">清除搜尋</button>
+      </div>
+      <div class="chips" aria-label="搜尋範例">
+        <button class="chip" data-query="HER2">HER2 全部提及</button>
+        <button class="chip" data-query="HER2+">HER2 陽性</button>
+        <button class="chip" data-query="HER2 negative">HER2 陰性</button>
+        <button class="chip" data-query="HER2 low">HER2-low</button>
+        <button class="chip" data-query="HER2 non-positive">HER2 非陽性</button>
+        <button class="chip" data-query="HCC 1L">HCC 1L</button>
+      </div>
+      <div class="filters">
+        <label class="field"><span>癌別</span><select id="cancerFilter"><option value="">全部癌別</option></select></label>
+        <label class="field"><span>治療線別／情境</span><select id="lineFilter"><option value="">全部線別</option></select></label>
+        <label class="field"><span>收案狀態</span><select id="statusFilter"><option value="">全部狀態</option></select></label>
+        <label class="checkbox-field"><input id="activeOnlyFilter" type="checkbox"> 只顯示仍可收案／準備中</label>
+      </div>
+      <div class="actions">
+        <button id="addButton" class="primary" type="button">新增試驗</button>
+        <button id="importButton" class="secondary" type="button">匯入與審查</button>
+        <button id="exportButton" class="ghost" type="button">匯出 JSON</button>
+        <button id="resetButton" class="ghost" type="button">重設合成資料</button>
+      </div>
+    </section>
 
-<script src="./js/search/biomarker-classifier.js"></script>
-<script src="./js/search/search-engine.js"></script>
-<script>
-  const trials = [
-    {
-      code: 'DEMO-HER2-POS',
-      studyTitle: 'First-line study for HER2-positive gastric cancer',
-      cancerTypes: [{ type: '胃癌', lines: ['一線'] }],
-      inclusion: 'Central confirmation of HER2 IHC 3+ or IHC 2+ with ISH-positive is required.',
-      exclusion: 'Prior anti-HER2 treatment in the metastatic setting is not allowed.'
-    },
-    {
-      code: 'DEMO-HER2-NEG',
-      studyTitle: 'First-line study for advanced gastric cancer',
-      cancerTypes: [{ type: '胃癌', lines: ['一線'] }],
-      inclusion: 'HER2-negative disease is required. Measurable disease by RECIST 1.1.'
-    },
-    {
-      code: 'DEMO-HER2-LOW',
-      studyTitle: 'ADC study for HER2-low gastric cancer',
-      cancerTypes: [{ type: '胃癌', lines: ['二線'] }],
-      inclusion: 'HER2-low: IHC 1+ or IHC 2+ with ISH-negative.'
-    },
-    {
-      code: 'DEMO-EXCLUDE-POS',
-      studyTitle: 'Biomarker-selected colorectal cancer study',
-      cancerTypes: [{ type: '大腸癌', lines: ['二線'] }],
-      inclusion: 'RAS and BRAF wild-type disease is required.\nExclusion:\nHER2-positive or amplified tumors are excluded.'
-    },
-    {
-      code: 'DEMO-ANY-HER2',
-      studyTitle: 'All-comer gastric cancer study',
-      cancerTypes: [{ type: '胃癌', lines: ['一線'] }],
-      inclusion: 'Enrollment is allowed regardless of HER2 status.'
-    },
-    {
-      code: 'DEMO-MENTION',
-      studyTitle: 'Translational study of HER2 expression',
-      cancerTypes: [{ type: '胃癌', lines: ['Translational study'] }],
-      inclusion: 'No HER2 eligibility threshold is specified.'
-    }
-  ];
+    <section>
+      <div class="summary-row">
+        <div id="resultSummary" class="summary-text"></div>
+        <div id="statList" class="stat-list"></div>
+      </div>
+      <div id="trialGrid" class="trial-grid"></div>
+    </section>
+  </main>
 
-  const options = [
-    ['HER2', '全部提及'],
-    ['HER2+', '陽性'],
-    ['HER2 negative', '陰性'],
-    ['HER2 low', 'Low'],
-    ['HER2 non-positive', '非陽性／排除陽性']
-  ];
+  <dialog id="detailDialog">
+    <div class="dialog-header"><h2 id="detailTitle">試驗詳情</h2><button class="close-button" data-close-dialog="detailDialog" aria-label="關閉">×</button></div>
+    <div id="detailBody" class="dialog-body"></div>
+    <div class="dialog-footer"><button id="editFromDetailButton" class="secondary" type="button">編輯</button><button class="ghost" data-close-dialog="detailDialog" type="button">關閉</button></div>
+  </dialog>
 
-  const queryInput = document.getElementById('query');
-  const chips = document.getElementById('chips');
-  const results = document.getElementById('results');
-  const summary = document.getElementById('summary');
-  const parsed = document.getElementById('parsed');
+  <dialog id="editDialog">
+    <div class="dialog-header"><h2 id="editDialogTitle">新增試驗</h2><button class="close-button" data-close-dialog="editDialog" aria-label="關閉">×</button></div>
+    <form id="trialForm">
+      <div class="dialog-body">
+        <input id="editOriginalKey" type="hidden">
+        <div class="form-grid">
+          <label class="field"><span>試驗代號</span><input id="editCode" required></label>
+          <label class="field"><span>收案狀態</span><select id="editStatus"><option value="Recruiting">收案中</option><option value="Pending">準備中</option><option value="Temporarily closed">暫停</option><option value="Closed">停止收案</option><option value="Unknown">未知</option></select></label>
+          <label class="field wide"><span>試驗名稱</span><input id="editTitle" required></label>
+          <label class="field"><span>癌別</span><input id="editCancer" placeholder="例如 gastric cancer"></label>
+          <label class="field"><span>治療線別／情境</span><input id="editLines" placeholder="例如 1L, metastatic"></label>
+          <label class="field"><span>Sponsor</span><input id="editSponsor"></label>
+          <label class="field"><span>Phase</span><input id="editPhase"></label>
+          <label class="field"><span>PI</span><input id="editPi"></label>
+          <label class="field"><span>研究護理師／Coordinator</span><input id="editNurse"></label>
+          <label class="field wide"><span>Inclusion criteria</span><textarea id="editInclusion"></textarea></label>
+          <label class="field wide"><span>Exclusion criteria</span><textarea id="editExclusion"></textarea></label>
+          <label class="field wide"><span>備註</span><textarea id="editNotes"></textarea></label>
+        </div>
+      </div>
+      <div class="dialog-footer"><button class="ghost" data-close-dialog="editDialog" type="button">取消</button><button class="primary" type="submit">儲存</button></div>
+    </form>
+  </dialog>
 
-  options.forEach(([query, label]) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.textContent = label;
-    button.addEventListener('click', () => { queryInput.value = query; render(); });
-    chips.appendChild(button);
-  });
+  <dialog id="importDialog">
+    <div class="dialog-header"><div><h2>匯入與審查</h2><p class="header-copy" style="color:#626f85;margin:5px 0 0">先解析、分類與比對，確認後才寫入本機資料。</p></div><button class="close-button" data-close-dialog="importDialog" aria-label="關閉">×</button></div>
+    <div class="dialog-body">
+      <div class="notice">Public 測試站只使用瀏覽器本機儲存。請勿貼入病人資料、正式帳號或院內敏感內容。</div>
+      <div class="form-grid">
+        <label class="field"><span>資料格式</span><select id="importFormat"><option value="auto">自動判斷</option><option value="json">JSON</option><option value="table">Excel／CSV／TSV</option><option value="document">PDF 擷取後的文字／protocol text</option></select></label>
+        <label class="field"><span>選擇檔案</span><input id="importFile" type="file" accept=".json,.csv,.tsv,.txt,text/plain,application/json,text/csv"></label>
+        <label class="field wide"><span>貼上內容</span><textarea id="importText" style="min-height:190px" placeholder="可貼 JSON、Excel 表格、CSV，或從 PDF 擷取出的文字"></textarea></label>
+      </div>
+      <div class="actions" style="border-top:0;padding-top:0"><button id="parseImportButton" class="primary" type="button">解析並比對</button><button id="loadImportExampleButton" class="ghost" type="button">載入範例</button></div>
+      <div id="importStatus" class="import-status">尚未解析。</div>
+      <div id="reviewList" class="review-list"></div>
+    </div>
+    <div class="dialog-footer"><button class="ghost" data-close-dialog="importDialog" type="button">關閉</button><button id="applyImportButton" class="primary" type="button" disabled>套用勾選項目</button></div>
+  </dialog>
 
-  const statusLabel = (status) => ({
-    positive: 'HER2 陽性', negative: 'HER2 陰性', low: 'HER2-low', any: '不限 HER2',
-    mentioned: '僅提及 HER2', mixed: '混合表現', none: '未提及'
-  }[status] || status);
-
-  const escapeHtml = (value) => String(value || '').replace(/[&<>"]/g, (char) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
-  }[char]));
-
-  function render() {
-    const api = window.ClinicalTrialApp.search;
-    const query = queryInput.value.trim();
-    const parsedQuery = api.parseSearchQuery(query);
-    const matches = api.searchTrials(trials, query);
-    summary.textContent = `${matches.length} / ${trials.length} 個合成試驗符合`;
-    const structured = parsedQuery.filters[0];
-    parsed.textContent = structured ? `解析：HER2 → ${structured.status}` : '一般文字搜尋';
-
-    if (!matches.length) {
-      results.innerHTML = '<div class="card empty">沒有符合的合成試驗。</div>';
-      return;
-    }
-
-    results.innerHTML = matches.map(({ trial, result }) => {
-      const classification = api.classifyHER2(trial);
-      const biomarkerReason = result.reasons.find((reason) => reason.type === 'biomarker');
-      const evidence = biomarkerReason && biomarkerReason.evidence.length
-        ? biomarkerReason.evidence.map((item) => `<div><strong>${escapeHtml(item.role)}</strong> · ${escapeHtml(item.evidence)}</div>`).join('')
-        : '<div>以一般文字欄位命中。</div>';
-      const types = (trial.cancerTypes || []).map((item) => `<span class="badge">${escapeHtml(item.type)} · ${escapeHtml((item.lines || []).join('、'))}</span>`).join('');
-      return `
-        <article class="card">
-          <div class="code">${escapeHtml(trial.code)}</div>
-          <div class="title">${escapeHtml(trial.studyTitle)}</div>
-          <div>${types}<span class="badge">${escapeHtml(statusLabel(classification.summary))}</span><span class="badge">score ${result.score}</span></div>
-          <div class="evidence"><div class="label">Why this matched</div>${evidence}</div>
-        </article>`;
-    }).join('');
-  }
-
-  queryInput.addEventListener('input', render);
-  render();
-</script>
+  <script src="./js/core/normalization.js"></script>
+  <script src="./js/core/trial-schema.js"></script>
+  <script src="./js/core/trial-merge.js"></script>
+  <script src="./js/classification/rule-engine.js"></script>
+  <script src="./js/classification/cancer-type.js"></script>
+  <script src="./js/classification/treatment-line.js"></script>
+  <script src="./js/classification/enrollment-status.js"></script>
+  <script src="./js/classification/index.js"></script>
+  <script src="./js/search/biomarker-classifier.js"></script>
+  <script src="./js/search/search-engine.js"></script>
+  <script src="./js/parsing/document-text-parser.js"></script>
+  <script src="./js/parsing/table-parser-core.js"></script>
+  <script src="./js/parsing/delimited-parser.js"></script>
+  <script src="./js/parsing/import-pipeline.js"></script>
+  <script src="./js/repositories/memory-repository.js"></script>
+  <script src="./js/repositories/local-storage-repository.js"></script>
+  <script src="./data/synthetic-trials.js"></script>
+  <script src="./js/ui/app.js"></script>
 </body>
 </html>
