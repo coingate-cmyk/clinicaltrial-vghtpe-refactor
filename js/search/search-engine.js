@@ -11,18 +11,13 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (classifier) {
     'use strict';
 
-    const normalize = (value) => classifier.normalizeUnicode(value)
-        .toLowerCase()
-        .replace(/[\s　]+/g, ' ')
-        .trim();
-
+    const normalize = (value) => classifier.normalizeUnicode(value).toLowerCase().replace(/[\s　]+/g, ' ').trim();
     const normalizeCompact = (value) => normalize(value).replace(/[\s\-_/()（）:：.]+/g, '');
 
     const parseSearchQuery = (query) => {
         const raw = classifier.normalizeUnicode(query).trim();
         let remaining = raw;
         const filters = [];
-
         const definitions = [
             { status: 'low', regex: /(?:\bHER\s*-?\s*2\s*[- ]?low\b|HER\s*-?\s*2\s*低表現|HER2LOW)/ig },
             { status: 'nonPositive', regex: /(?:\bHER\s*-?\s*2\s*non[- ]?positive\b|HER\s*-?\s*2\s*非陽性)/ig },
@@ -30,7 +25,6 @@
             { status: 'negative', regex: /(?:\bHER\s*-?\s*2\s*(?:negative|negatve)\b|HER\s*-?\s*2\s*陰性|HER2-(?!low))/ig },
             { status: 'anyMention', regex: /(?:\bHER\s*-?\s*2\b|\bERBB\s*2\b)/ig }
         ];
-
         for (const definition of definitions) {
             if (definition.regex.test(remaining)) {
                 filters.push({ type: 'biomarker', marker: 'HER2', status: definition.status });
@@ -38,24 +32,23 @@
                 break;
             }
         }
-
-        const freeText = remaining.replace(/\s+/g, ' ').trim();
-        return { raw, freeText, filters };
+        return { raw, freeText: remaining.replace(/\s+/g, ' ').trim(), filters };
     };
 
     const trialFields = (trial) => [
         { name: 'code', value: trial && trial.code, weight: 120 },
-        { name: 'studyTitle', value: trial && trial.studyTitle, weight: 80 },
+        { name: 'title', value: trial && (trial.title || trial.studyTitle), weight: 80 },
         { name: 'cancerType', value: [
             trial && trial.cancerType,
-            Array.isArray(trial && trial.cancerTypes)
-                ? trial.cancerTypes.map((item) => `${item.type || ''} ${(item.lines || []).join(' ')}`).join(' ')
-                : ''
+            Array.isArray(trial && trial.cancerTypes) ? trial.cancerTypes.map((item) => `${item.type || ''} ${(item.lines || []).join(' ')}`).join(' ') : ''
         ].join(' '), weight: 65 },
+        { name: 'treatmentLines', value: Array.isArray(trial && trial.treatmentLines) ? trial.treatmentLines.join(' ') : '', weight: 62 },
+        { name: 'interventions', value: Array.isArray(trial && trial.interventions) ? trial.interventions.join(' ') : '', weight: 60 },
         { name: 'sponsor', value: trial && trial.sponsor, weight: 55 },
-        { name: 'pi', value: trial && trial.pi, weight: 50 },
-        { name: 'nurse', value: trial && trial.nurse, weight: 40 },
-        { name: 'comments', value: trial && trial.comments, weight: 25 },
+        { name: 'pi', value: trial && ((trial.contacts && trial.contacts.pi) || trial.pi), weight: 50 },
+        { name: 'nurse', value: trial && ((trial.contacts && trial.contacts.nurse) || trial.nurse), weight: 40 },
+        { name: 'summary', value: trial && trial.summary, weight: 30 },
+        { name: 'notes', value: trial && (trial.notes || trial.comments), weight: 25 },
         { name: 'inclusion', value: trial && trial.inclusion, weight: 20 },
         { name: 'exclusion', value: trial && trial.exclusion, weight: 10 }
     ];
@@ -65,7 +58,6 @@
         const terms = normalize(freeText).split(' ').filter(Boolean);
         const reasons = [];
         let score = 0;
-
         for (const term of terms) {
             const compactTerm = normalizeCompact(term);
             let termMatched = false;
@@ -84,7 +76,6 @@
             }
             if (!termMatched) return { matched: false, score: 0, reasons: [] };
         }
-
         return { matched: true, score, reasons };
     };
 
@@ -92,29 +83,18 @@
         const parsed = typeof query === 'string' ? parseSearchQuery(query) : query;
         const reasons = [];
         let score = 0;
-
         for (const filter of parsed.filters || []) {
             if (filter.type === 'biomarker' && filter.marker === 'HER2') {
                 const classification = classifier.classifyHER2(trial);
-                if (!classifier.matchesHER2Status(classification, filter.status)) {
-                    return { matched: false, score: 0, reasons: [], parsed, biomarkers: { HER2: classification } };
-                }
+                if (!classifier.matchesHER2Status(classification, filter.status)) return { matched: false, score: 0, reasons: [], parsed, biomarkers: { HER2: classification } };
                 score += filter.status === 'anyMention' ? 30 : 90;
-                reasons.push({
-                    type: 'biomarker',
-                    marker: 'HER2',
-                    status: filter.status,
-                    summary: classification.summary,
-                    evidence: classification.mentions.slice(0, 3)
-                });
+                reasons.push({ type: 'biomarker', marker: 'HER2', status: filter.status, summary: classification.summary, evidence: classification.mentions.slice(0, 3) });
             }
         }
-
         const freeTextResult = scoreFreeText(trial, parsed.freeText || '');
         if (!freeTextResult.matched) return { matched: false, score: 0, reasons: [], parsed };
         score += freeTextResult.score;
         reasons.push(...freeTextResult.reasons);
-
         return { matched: true, score, reasons, parsed };
     };
 
@@ -123,9 +103,5 @@
         .filter((item) => item.result.matched)
         .sort((a, b) => b.result.score - a.result.score || a.index - b.index);
 
-    return {
-        parseSearchQuery,
-        evaluateTrialSearch,
-        searchTrials
-    };
+    return { parseSearchQuery, evaluateTrialSearch, searchTrials };
 });
