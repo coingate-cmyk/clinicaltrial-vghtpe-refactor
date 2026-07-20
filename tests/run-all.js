@@ -11,7 +11,9 @@ const tests = [
     'delimited-parser.test.js',
     'merge.test.js',
     'import-pipeline.test.js',
-    'repository.test.js'
+    'repository.test.js',
+    'pdf-browser-parser.test.js',
+    'workbook-parser.test.js'
 ];
 
 let failed = false;

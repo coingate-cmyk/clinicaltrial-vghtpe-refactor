@@ -15,7 +15,7 @@
         <h1>臨床試驗搜尋與匯入工作台</h1>
         <p class="header-copy">以合成資料測試新的資料正規化、臨床分類、語意搜尋、匯入審查與本機保存架構。</p>
       </div>
-      <div class="version-pill">Public test v0.2</div>
+      <div class="version-pill">Public test v0.3</div>
     </div>
   </header>
 
@@ -91,9 +91,9 @@
     <div class="dialog-body">
       <div class="notice">Public 測試站只使用瀏覽器本機儲存。請勿貼入病人資料、正式帳號或院內敏感內容。</div>
       <div class="form-grid">
-        <label class="field"><span>資料格式</span><select id="importFormat"><option value="auto">自動判斷</option><option value="json">JSON</option><option value="table">Excel／CSV／TSV</option><option value="document">PDF 擷取後的文字／protocol text</option></select></label>
-        <label class="field"><span>選擇檔案</span><input id="importFile" type="file" accept=".json,.csv,.tsv,.txt,text/plain,application/json,text/csv"></label>
-        <label class="field wide"><span>貼上內容</span><textarea id="importText" style="min-height:190px" placeholder="可貼 JSON、Excel 表格、CSV，或從 PDF 擷取出的文字"></textarea></label>
+        <label class="field"><span>資料格式</span><select id="importFormat"><option value="auto">自動判斷</option><option value="json">JSON</option><option value="pdf">PDF 檔案</option><option value="spreadsheet">Excel XLS／XLSX</option><option value="table">CSV／TSV／貼上 Excel</option><option value="document">文件文字／protocol text</option></select></label>
+        <label class="field"><span>選擇檔案</span><input id="importFile" type="file" accept=".pdf,.xlsx,.xls,.xlsm,.xlsb,.ods,.json,.csv,.tsv,.txt,application/pdf,text/plain,application/json,text/csv"></label>
+        <label class="field wide"><span>貼上內容</span><textarea id="importText" style="min-height:190px" placeholder="可直接選 PDF／Excel 檔案，或貼 JSON、CSV、表格及 protocol 文字"></textarea></label>
       </div>
       <div class="actions" style="border-top:0;padding-top:0"><button id="parseImportButton" class="primary" type="button">解析並比對</button><button id="loadImportExampleButton" class="ghost" type="button">載入範例</button></div>
       <div id="importStatus" class="import-status">尚未解析。</div>
@@ -115,10 +115,14 @@
   <script src="./js/parsing/document-text-parser.js"></script>
   <script src="./js/parsing/table-parser-core.js"></script>
   <script src="./js/parsing/delimited-parser.js"></script>
+  <script src="./js/parsing/pdf-browser-parser.js"></script>
+  <script src="./js/parsing/xlsx-browser-parser.js"></script>
+  <script src="./js/parsing/file-parser.js"></script>
   <script src="./js/parsing/import-pipeline.js"></script>
   <script src="./js/repositories/memory-repository.js"></script>
   <script src="./js/repositories/local-storage-repository.js"></script>
   <script src="./data/synthetic-trials.js"></script>
   <script src="./js/ui/app.js"></script>
+  <script src="./js/ui/direct-file-import.js"></script>
 </body>
 </html>
