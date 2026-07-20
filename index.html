@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clinical Trial Search Refactor Demo</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f5f7fb; color: #172033; }
+    main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 56px; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 44px); }
+    .subtitle { margin: 0 0 24px; color: #5c667a; line-height: 1.6; }
+    .panel { background: white; border: 1px solid #dfe4ee; border-radius: 18px; padding: 18px; box-shadow: 0 8px 30px rgba(20, 33, 61, .06); }
+    .search-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    input { flex: 1 1 360px; min-width: 0; font: inherit; padding: 13px 15px; border: 1px solid #bfc8d8; border-radius: 12px; }
+    button { font: inherit; border: 1px solid #bfc8d8; background: #fff; border-radius: 999px; padding: 9px 13px; cursor: pointer; }
+    button:hover { background: #eef3ff; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .meta { display: flex; justify-content: space-between; gap: 12px; margin: 22px 2px 12px; color: #5c667a; }
+    .grid { display: grid; gap: 14px; }
+    .card { background: white; border: 1px solid #dfe4ee; border-radius: 16px; padding: 17px; }
+    .code { font-weight: 750; letter-spacing: .03em; }
+    .title { font-size: 18px; font-weight: 700; margin: 5px 0 10px; }
+    .badge { display: inline-flex; border-radius: 999px; padding: 5px 9px; margin: 0 6px 6px 0; background: #eef3ff; color: #244b94; font-size: 13px; }
+    .evidence { margin-top: 10px; background: #f7f9fc; border-left: 4px solid #7896cf; padding: 10px 12px; border-radius: 8px; line-height: 1.55; }
+    .label { font-size: 12px; text-transform: uppercase; color: #66728a; letter-spacing: .06em; }
+    .empty { text-align: center; color: #6a7384; padding: 42px 12px; }
+    code { background: #eef1f6; padding: 2px 5px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Clinical Trial Search Refactor</h1>
+  <p class="subtitle">公開安全測試版。資料皆為合成範例，用來驗證 HER2 語意搜尋、inclusion／exclusion context 與命中理由。</p>
+
+  <section class="panel">
+    <div class="search-row">
+      <input id="query" value="HER2" aria-label="Search trials" placeholder="例如：HER2+、HER2 negative、HER2 low、HER2 non-positive">
+    </div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <div class="meta"><span id="summary"></span><span id="parsed"></span></div>
+  <section id="results" class="grid"></section>
+</main>
+
+<script src="./js/search/biomarker-classifier.js"></script>
+<script src="./js/search/search-engine.js"></script>
+<script>
+  const trials = [
+    {
+      code: 'DEMO-HER2-POS',
+      studyTitle: 'First-line study for HER2-positive gastric cancer',
+      cancerTypes: [{ type: '胃癌', lines: ['一線'] }],
+      inclusion: 'Central confirmation of HER2 IHC 3+ or IHC 2+ with ISH-positive is required.',
+      exclusion: 'Prior anti-HER2 treatment in the metastatic setting is not allowed.'
+    },
+    {
+      code: 'DEMO-HER2-NEG',
+      studyTitle: 'First-line study for advanced gastric cancer',
+      cancerTypes: [{ type: '胃癌', lines: ['一線'] }],
+      inclusion: 'HER2-negative disease is required. Measurable disease by RECIST 1.1.'
+    },
+    {
+      code: 'DEMO-HER2-LOW',
+      studyTitle: 'ADC study for HER2-low gastric cancer',
+      cancerTypes: [{ type: '胃癌', lines: ['二線'] }],
+      inclusion: 'HER2-low: IHC 1+ or IHC 2+ with ISH-negative.'
+    },
+    {
+      code: 'DEMO-EXCLUDE-POS',
+      studyTitle: 'Biomarker-selected colorectal cancer study',
+      cancerTypes: [{ type: '大腸癌', lines: ['二線'] }],
+      inclusion: 'RAS and BRAF wild-type disease is required.\nExclusion:\nHER2-positive or amplified tumors are excluded.'
+    },
+    {
+      code: 'DEMO-ANY-HER2',
+      studyTitle: 'All-comer gastric cancer study',
+      cancerTypes: [{ type: '胃癌', lines: ['一線'] }],
+      inclusion: 'Enrollment is allowed regardless of HER2 status.'
+    },
+    {
+      code: 'DEMO-MENTION',
+      studyTitle: 'Translational study of HER2 expression',
+      cancerTypes: [{ type: '胃癌', lines: ['Translational study'] }],
+      inclusion: 'No HER2 eligibility threshold is specified.'
+    }
+  ];
+
+  const options = [
+    ['HER2', '全部提及'],
+    ['HER2+', '陽性'],
+    ['HER2 negative', '陰性'],
+    ['HER2 low', 'Low'],
+    ['HER2 non-positive', '非陽性／排除陽性']
+  ];
+
+  const queryInput = document.getElementById('query');
+  const chips = document.getElementById('chips');
+  const results = document.getElementById('results');
+  const summary = document.getElementById('summary');
+  const parsed = document.getElementById('parsed');
+
+  options.forEach(([query, label]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.addEventListener('click', () => { queryInput.value = query; render(); });
+    chips.appendChild(button);
+  });
+
+  const statusLabel = (status) => ({
+    positive: 'HER2 陽性', negative: 'HER2 陰性', low: 'HER2-low', any: '不限 HER2',
+    mentioned: '僅提及 HER2', mixed: '混合表現', none: '未提及'
+  }[status] || status);
+
+  const escapeHtml = (value) => String(value || '').replace(/[&<>"]/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'
+  }[char]));
+
+  function render() {
+    const api = window.ClinicalTrialApp.search;
+    const query = queryInput.value.trim();
+    const parsedQuery = api.parseSearchQuery(query);
+    const matches = api.searchTrials(trials, query);
+    summary.textContent = `${matches.length} / ${trials.length} 個合成試驗符合`;
+    const structured = parsedQuery.filters[0];
+    parsed.textContent = structured ? `解析：HER2 → ${structured.status}` : '一般文字搜尋';
+
+    if (!matches.length) {
+      results.innerHTML = '<div class="card empty">沒有符合的合成試驗。</div>';
+      return;
+    }
+
+    results.innerHTML = matches.map(({ trial, result }) => {
+      const classification = api.classifyHER2(trial);
+      const biomarkerReason = result.reasons.find((reason) => reason.type === 'biomarker');
+      const evidence = biomarkerReason && biomarkerReason.evidence.length
+        ? biomarkerReason.evidence.map((item) => `<div><strong>${escapeHtml(item.role)}</strong> · ${escapeHtml(item.evidence)}</div>`).join('')
+        : '<div>以一般文字欄位命中。</div>';
+      const types = (trial.cancerTypes || []).map((item) => `<span class="badge">${escapeHtml(item.type)} · ${escapeHtml((item.lines || []).join('、'))}</span>`).join('');
+      return `
+        <article class="card">
+          <div class="code">${escapeHtml(trial.code)}</div>
+          <div class="title">${escapeHtml(trial.studyTitle)}</div>
+          <div>${types}<span class="badge">${escapeHtml(statusLabel(classification.summary))}</span><span class="badge">score ${result.score}</span></div>
+          <div class="evidence"><div class="label">Why this matched</div>${evidence}</div>
+        </article>`;
+    }).join('');
+  }
+
+  queryInput.addEventListener('input', render);
+  render();
+</script>
+</body>
+</html>
