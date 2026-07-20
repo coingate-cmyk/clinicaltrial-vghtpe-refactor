@@ -1,6 +1,6 @@
 {
   "name": "clinicaltrial-vghtpe-refactor",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Public-safe refactor workspace for clinical-trial parsing, classification, search, import review, and persistence.",
   "scripts": {
