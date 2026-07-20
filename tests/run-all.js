@@ -13,7 +13,8 @@ const tests = [
     'import-pipeline.test.js',
     'repository.test.js',
     'pdf-browser-parser.test.js',
-    'workbook-parser.test.js'
+    'workbook-parser.test.js',
+    'pdf-table-parser.test.js'
 ];
 
 let failed = false;
