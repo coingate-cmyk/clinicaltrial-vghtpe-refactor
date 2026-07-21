@@ -13,6 +13,7 @@
 
     const SCHEMA_VERSION = 1;
     const VALID_STATUSES = new Set(['recruiting', 'temporarily_closed', 'closed', 'pending', 'unknown']);
+    const VALID_AVAILABILITIES = new Set(['available', 'limited', 'full', 'paused', 'closed', 'pending', 'unknown']);
 
     function createEmptyTrial(overrides) {
         return Object.assign(normalization.normalizeTrial({}), overrides || {}, { schemaVersion: SCHEMA_VERSION });
@@ -41,6 +42,7 @@
         if (!normalization.normalizeInlineText(item.title)) warnings.push({ field: 'title', code: 'MISSING_TITLE', message: 'Study title is missing.' });
         if (!Array.isArray(item.cancerTypes) || item.cancerTypes.length === 0) warnings.push({ field: 'cancerTypes', code: 'MISSING_CANCER_TYPE', message: 'Cancer type was not identified.' });
         if (!VALID_STATUSES.has(item.status)) errors.push({ field: 'status', code: 'INVALID_STATUS', message: `Unknown normalized status: ${item.status}` });
+        if (!VALID_AVAILABILITIES.has(item.availability || 'unknown')) errors.push({ field: 'availability', code: 'INVALID_AVAILABILITY', message: `Unknown availability: ${item.availability}` });
         if (item.contacts && typeof item.contacts !== 'object') errors.push({ field: 'contacts', code: 'INVALID_CONTACTS', message: 'contacts must be an object.' });
         if (item.provenance && !Array.isArray(item.provenance)) errors.push({ field: 'provenance', code: 'INVALID_PROVENANCE', message: 'provenance must be an array.' });
         if (opts.requireCode && !item.code) errors.push({ field: 'code', code: 'CODE_REQUIRED', message: 'A study code is required for this import.' });
@@ -58,5 +60,5 @@
         return trial;
     }
 
-    return { SCHEMA_VERSION, VALID_STATUSES, createEmptyTrial, trialIdentityKey, validateTrial, assertValidTrial };
+    return { SCHEMA_VERSION, VALID_STATUSES, VALID_AVAILABILITIES, createEmptyTrial, trialIdentityKey, validateTrial, assertValidTrial };
 });

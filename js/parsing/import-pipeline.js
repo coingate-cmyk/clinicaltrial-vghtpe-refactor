@@ -14,7 +14,7 @@
 
     function applyClassifications(trial) {
         const classified = classification.classifyTrial(trial);
-        const result = Object.assign({}, trial, { classifications: classified });
+        const result = Object.assign({}, trial, { classifications: Object.assign({}, trial.classifications || {}, classified) });
         if ((!result.cancerTypes || !result.cancerTypes.length) && classified.cancerTypes.length) {
             result.cancerTypes = classified.cancerTypes.map((finding) => ({ type: finding.value, lines: [] }));
         }
@@ -83,9 +83,13 @@
 
             const existing = matches[0];
             const comparison = merge.compareTrials(existing.trial, candidate.trial);
-            if (!comparison.changed) actions.push({ type: 'unchanged', candidateIndex, candidate, existing });
-            else if (comparison.conflicts.length) actions.push({ type: 'review', candidateIndex, candidate, existing, proposed: comparison.merged, conflicts: comparison.conflicts });
-            else actions.push({ type: 'update', candidateIndex, candidate, existing, proposed: comparison.merged });
+            if (comparison.conflicts.length) {
+                actions.push({ type: 'review', candidateIndex, candidate, existing, proposed: comparison.merged, conflicts: comparison.conflicts });
+            } else if (!comparison.changed) {
+                actions.push({ type: 'unchanged', candidateIndex, candidate, existing });
+            } else {
+                actions.push({ type: 'update', candidateIndex, candidate, existing, proposed: comparison.merged });
+            }
         });
 
         const summary = actions.reduce((counts, action) => {
@@ -96,15 +100,47 @@
         return { candidates, actions, summary };
     }
 
+    function normalizeSelection(value, defaultDecision) {
+        if (typeof value === 'string') return { decision: value, resolutions: {}, actor: '' };
+        if (value && typeof value === 'object') {
+            return {
+                decision: value.decision || defaultDecision,
+                resolutions: value.resolutions || {},
+                actor: value.actor || ''
+            };
+        }
+        return { decision: defaultDecision, resolutions: {}, actor: '' };
+    }
+
+    function resolveReviewAction(action, selection) {
+        if (!action || !action.existing || !action.candidate) return null;
+        return merge.mergeTrials(action.existing.trial, action.candidate.trial, {
+            resolutions: selection.resolutions,
+            actor: selection.actor
+        });
+    }
+
     function applyImportPlan(existingTrials, plan, selections) {
         const result = (existingTrials || []).map((trial) => normalization.normalizeTrial(trial));
         const selected = selections || {};
         (plan && plan.actions || []).forEach((action, actionIndex) => {
-            const decision = selected[actionIndex] || (['add', 'update'].includes(action.type) ? 'accept' : 'skip');
-            if (decision !== 'accept') return;
+            const defaultDecision = ['add', 'update'].includes(action.type) ? 'accept' : 'skip';
+            const selection = normalizeSelection(selected[actionIndex], defaultDecision);
+            if (selection.decision !== 'accept') return;
             if (action.type === 'add') result.push(action.proposed);
             if (action.type === 'update' && action.existing) result[action.existing.position] = action.proposed;
-            if (action.type === 'review' && action.proposed && action.existing) result[action.existing.position] = action.proposed;
+            if (action.type === 'review' && action.existing) {
+                const resolved = resolveReviewAction(action, selection);
+                if (!resolved) return;
+                const unresolvedProtected = resolved.conflicts.filter((conflict) => conflict.protected && !selection.resolutions[conflict.field]);
+                if (unresolvedProtected.length) {
+                    const error = new Error(`Protected conflicts require a decision: ${unresolvedProtected.map((item) => item.field).join(', ')}`);
+                    error.code = 'UNRESOLVED_PROTECTED_CONFLICT';
+                    error.conflicts = unresolvedProtected;
+                    throw error;
+                }
+                result[action.existing.position] = resolved.trial;
+            }
         });
         return result;
     }
@@ -126,5 +162,5 @@
         };
     }
 
-    return { applyClassifications, prepareCandidate, indexTrials, planImport, applyImportPlan, createParserRegistry };
+    return { applyClassifications, prepareCandidate, indexTrials, planImport, resolveReviewAction, applyImportPlan, createParserRegistry };
 });

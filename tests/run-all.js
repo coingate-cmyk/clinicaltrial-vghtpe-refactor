@@ -5,6 +5,7 @@ const path = require('path');
 
 const tests = [
     'search-core.test.js',
+    'contact-integrity.test.js',
     'normalization.test.js',
     'clinical-rules.test.js',
     'document-parser.test.js',
@@ -14,7 +15,9 @@ const tests = [
     'repository.test.js',
     'pdf-browser-parser.test.js',
     'workbook-parser.test.js',
-    'pdf-table-parser.test.js'
+    'pdf-table-parser.test.js',
+    'pdf-field-integrity.test.js',
+    'pdf-contact-heuristics.test.js'
 ];
 
 let failed = false;
