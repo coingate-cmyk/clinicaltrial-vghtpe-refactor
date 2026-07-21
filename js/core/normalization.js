@@ -84,6 +84,14 @@
         return null;
     }
 
+    function normalizeInteger(value) {
+        if (value === '' || value == null) return null;
+        const match = normalizeInlineText(value).match(/-?\d+/);
+        if (!match) return null;
+        const number = Number(match[0]);
+        return Number.isInteger(number) ? number : null;
+    }
+
     function normalizeList(value) {
         const values = Array.isArray(value) ? value : normalizeWhitespace(value).split(/\n|[;,；，、]/);
         const seen = new Set();
@@ -178,6 +186,8 @@
         const generatedId = code ? `trial:${compactCode(code)}` : (sourceId ? `source:${sourceId}` : '');
         const statusRaw = firstDefined(input, ['statusRaw', 'status', 'enrollmentStatus', 'recruitmentStatus', 'studyStatus']);
         const availabilityRaw = firstDefined(input, ['availabilityRaw', 'availability', 'slotStatus', 'slotAvailability', 'capacityStatus', 'localAvailability', 'localStatus']);
+        const contactsInput = input.contacts || {};
+        const enrollmentInput = input.siteEnrollment || input.enrollment || {};
 
         return {
             schemaVersion: 1,
@@ -200,10 +210,21 @@
             summary: normalizeWhitespace(firstDefined(input, ['summary', 'description', 'briefSummary'])),
             interventions: normalizeList(firstDefined(input, ['interventions', 'drugs', 'treatment', 'regimen'])),
             contacts: {
-                pi: normalizeInlineText(firstDefined(input, ['pi', 'principalInvestigator', 'investigator']) || firstDefined(input.contacts, ['pi', 'principalInvestigator', 'investigator'])),
-                nurse: normalizeInlineText(firstDefined(input, ['nurse', 'studyNurse', 'coordinator', 'crc']) || firstDefined(input.contacts, ['nurse', 'studyNurse', 'coordinator', 'crc'])),
-                phone: normalizeInlineText(firstDefined(input, ['phone', 'contactPhone']) || firstDefined(input.contacts, ['phone', 'contactPhone'])),
-                email: normalizeInlineText(firstDefined(input, ['email', 'contactEmail']) || firstDefined(input.contacts, ['email', 'contactEmail']))
+                pi: normalizeInlineText(firstDefined(input, ['pi', 'principalInvestigator', 'investigator']) || firstDefined(contactsInput, ['pi', 'principalInvestigator', 'investigator'])),
+                nurse: normalizeInlineText(firstDefined(input, ['nurse', 'studyNurse', 'coordinator', 'crc']) || firstDefined(contactsInput, ['nurse', 'studyNurse', 'coordinator', 'crc'])),
+                phone: normalizeInlineText(firstDefined(input, ['phone', 'contactPhone']) || firstDefined(contactsInput, ['phone', 'contactPhone'])),
+                email: normalizeInlineText(firstDefined(input, ['email', 'contactEmail']) || firstDefined(contactsInput, ['email', 'contactEmail'])),
+                verifiedAt: normalizeDate(firstDefined(input, ['contactVerifiedAt']) || firstDefined(contactsInput, ['verifiedAt', 'contactVerifiedAt'])),
+                verifiedBy: normalizeInlineText(firstDefined(input, ['contactVerifiedBy']) || firstDefined(contactsInput, ['verifiedBy', 'contactVerifiedBy'])),
+                sourceName: normalizeInlineText(firstDefined(input, ['contactSource']) || firstDefined(contactsInput, ['sourceName', 'source']))
+            },
+            siteEnrollment: {
+                enrolledCount: normalizeInteger(firstDefined(input, ['enrolledCount', 'siteEnrolled', 'currentEnrollment', '已收案人數']) || firstDefined(enrollmentInput, ['enrolledCount', 'siteEnrolled', 'currentEnrollment'])),
+                targetCount: normalizeInteger(firstDefined(input, ['targetCount', 'siteTarget', 'targetEnrollment', '預計收案人數']) || firstDefined(enrollmentInput, ['targetCount', 'siteTarget', 'targetEnrollment'])),
+                remainingSlots: normalizeInteger(firstDefined(input, ['remainingSlots', 'slotsRemaining', '剩餘名額']) || firstDefined(enrollmentInput, ['remainingSlots', 'slotsRemaining'])),
+                lastVerifiedAt: normalizeDate(firstDefined(input, ['enrollmentVerifiedAt', 'lastVerifiedAt']) || firstDefined(enrollmentInput, ['lastVerifiedAt', 'verifiedAt'])),
+                verifiedBy: normalizeInlineText(firstDefined(input, ['enrollmentVerifiedBy']) || firstDefined(enrollmentInput, ['verifiedBy'])),
+                sourceName: normalizeInlineText(firstDefined(input, ['enrollmentSource']) || firstDefined(enrollmentInput, ['sourceName', 'source']))
             },
             sites: normalizeList(firstDefined(input, ['sites', 'site', 'locations'])),
             notes: normalizeWhitespace(firstDefined(input, ['notes', 'comments', 'remark', 'remarks'])),
@@ -213,6 +234,8 @@
                 sourceId,
                 importedAt: normalizeDate(firstDefined(input.source || input, ['importedAt', 'date'])) || normalizeDate(opts.importedAt)
             },
+            fieldMeta: input.fieldMeta && typeof input.fieldMeta === 'object' ? JSON.parse(JSON.stringify(input.fieldMeta)) : {},
+            changeLog: Array.isArray(input.changeLog) ? JSON.parse(JSON.stringify(input.changeLog)) : [],
             provenance: Array.isArray(input.provenance) ? input.provenance.slice() : [],
             classifications: input.classifications && typeof input.classifications === 'object' ? Object.assign({}, input.classifications) : {},
             createdAt: normalizeDate(input.createdAt),
@@ -222,7 +245,7 @@
 
     return {
         CANCER_ALIASES, STATUS_ALIASES, AVAILABILITY_ALIASES, normalizeUnicode, normalizeWhitespace, normalizeInlineText,
-        normalizeCode, compactCode, normalizeBoolean, normalizeList, normalizeCancerLabel,
+        normalizeCode, compactCode, normalizeBoolean, normalizeInteger, normalizeList, normalizeCancerLabel,
         normalizePhase, normalizeEnrollmentStatus, normalizeAvailability, normalizeDate, normalizeCancerTypes, normalizeTrial
     };
 });
