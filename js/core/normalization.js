@@ -86,9 +86,10 @@
 
     function normalizeInteger(value) {
         if (value === '' || value == null) return null;
-        const match = normalizeInlineText(value).match(/-?\d+/);
-        if (!match) return null;
-        const number = Number(match[0]);
+        if (typeof value === 'number' && Number.isInteger(value)) return value;
+        const text = normalizeInlineText(value);
+        if (!/^-?\d+$/.test(text)) return null;
+        const number = Number(text);
         return Number.isInteger(number) ? number : null;
     }
 
@@ -214,6 +215,8 @@
                 nurse: normalizeInlineText(firstDefined(input, ['nurse', 'studyNurse', 'coordinator', 'crc']) || firstDefined(contactsInput, ['nurse', 'studyNurse', 'coordinator', 'crc'])),
                 phone: normalizeInlineText(firstDefined(input, ['phone', 'contactPhone']) || firstDefined(contactsInput, ['phone', 'contactPhone'])),
                 email: normalizeInlineText(firstDefined(input, ['email', 'contactEmail']) || firstDefined(contactsInput, ['email', 'contactEmail'])),
+                lineId: normalizeInlineText(firstDefined(input, ['lineId', 'lineID', 'lineAccount']) || firstDefined(contactsInput, ['lineId', 'lineID', 'lineAccount'])),
+                raw: normalizeWhitespace(firstDefined(input, ['contactRaw', 'studyNursePhone', 'contactBlock']) || firstDefined(contactsInput, ['raw', 'contactRaw', 'studyNursePhone', 'contactBlock'])),
                 verifiedAt: normalizeDate(firstDefined(input, ['contactVerifiedAt']) || firstDefined(contactsInput, ['verifiedAt', 'contactVerifiedAt'])),
                 verifiedBy: normalizeInlineText(firstDefined(input, ['contactVerifiedBy']) || firstDefined(contactsInput, ['verifiedBy', 'contactVerifiedBy'])),
                 sourceName: normalizeInlineText(firstDefined(input, ['contactSource']) || firstDefined(contactsInput, ['sourceName', 'source']))
@@ -221,7 +224,10 @@
             siteEnrollment: {
                 enrolledCount: normalizeInteger(firstDefined(input, ['enrolledCount', 'siteEnrolled', 'currentEnrollment', '已收案人數']) || firstDefined(enrollmentInput, ['enrolledCount', 'siteEnrolled', 'currentEnrollment'])),
                 targetCount: normalizeInteger(firstDefined(input, ['targetCount', 'siteTarget', 'targetEnrollment', '預計收案人數']) || firstDefined(enrollmentInput, ['targetCount', 'siteTarget', 'targetEnrollment'])),
+                monthlySignedCount: normalizeInteger(firstDefined(input, ['monthlySignedCount', 'signedThisMonth', '當月簽署人數']) || firstDefined(enrollmentInput, ['monthlySignedCount', 'signedThisMonth'])),
+                monthlyEnrolledCount: normalizeInteger(firstDefined(input, ['monthlyEnrolledCount', 'enrolledThisMonth', '當月入案人數']) || firstDefined(enrollmentInput, ['monthlyEnrolledCount', 'enrolledThisMonth'])),
                 remainingSlots: normalizeInteger(firstDefined(input, ['remainingSlots', 'slotsRemaining', '剩餘名額']) || firstDefined(enrollmentInput, ['remainingSlots', 'slotsRemaining'])),
+                raw: normalizeWhitespace(firstDefined(input, ['enrollmentRaw', 'siteEnrollmentRaw']) || firstDefined(enrollmentInput, ['raw', 'enrollmentRaw'])),
                 lastVerifiedAt: normalizeDate(firstDefined(input, ['enrollmentVerifiedAt', 'lastVerifiedAt']) || firstDefined(enrollmentInput, ['lastVerifiedAt', 'verifiedAt'])),
                 verifiedBy: normalizeInlineText(firstDefined(input, ['enrollmentVerifiedBy']) || firstDefined(enrollmentInput, ['verifiedBy'])),
                 sourceName: normalizeInlineText(firstDefined(input, ['enrollmentSource']) || firstDefined(enrollmentInput, ['sourceName', 'source']))
@@ -232,6 +238,9 @@
                 type: normalizeInlineText(firstDefined(input.source || input, ['type', 'sourceType'])) || normalizeInlineText(opts.sourceType),
                 name: normalizeInlineText(firstDefined(input.source || input, ['name', 'sourceName', 'fileName'])) || normalizeInlineText(opts.sourceName),
                 sourceId,
+                pageNumber: normalizeInteger(firstDefined(input.source || input, ['pageNumber', 'page'])),
+                endPageNumber: normalizeInteger(firstDefined(input.source || input, ['endPageNumber', 'endPage'])),
+                rowNumber: normalizeInteger(firstDefined(input.source || input, ['rowNumber', 'row'])),
                 importedAt: normalizeDate(firstDefined(input.source || input, ['importedAt', 'date'])) || normalizeDate(opts.importedAt)
             },
             fieldMeta: input.fieldMeta && typeof input.fieldMeta === 'object' ? JSON.parse(JSON.stringify(input.fieldMeta)) : {},
