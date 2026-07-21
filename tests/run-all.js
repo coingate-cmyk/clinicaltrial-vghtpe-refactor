@@ -5,6 +5,7 @@ const path = require('path');
 
 const tests = [
     'search-core.test.js',
+    'advanced-search.test.js',
     'normalization.test.js',
     'clinical-rules.test.js',
     'document-parser.test.js',
