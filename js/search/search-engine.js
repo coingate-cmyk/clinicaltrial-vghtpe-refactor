@@ -49,6 +49,7 @@
         { name: 'nurse', value: trial && ((trial.contacts && trial.contacts.nurse) || trial.nurse), weight: 54 },
         { name: 'phone', value: trial && trial.contacts && trial.contacts.phone, weight: 48 },
         { name: 'email', value: trial && trial.contacts && trial.contacts.email, weight: 48 },
+        { name: 'lineId', value: trial && trial.contacts && trial.contacts.lineId, weight: 48 },
         { name: 'availability', value: [trial && trial.availability, trial && trial.availabilityRaw, trial && trial.statusRaw].join(' '), weight: 35 },
         { name: 'summary', value: trial && trial.summary, weight: 30 },
         { name: 'notes', value: trial && (trial.notes || trial.comments), weight: 25 },
