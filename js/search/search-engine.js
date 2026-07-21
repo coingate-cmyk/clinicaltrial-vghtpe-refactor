@@ -1,14 +1,22 @@
 (function (root, factory) {
-    const classifier = typeof module === 'object' && module.exports
-        ? require('./biomarker-classifier.js')
-        : (root.ClinicalTrialApp && root.ClinicalTrialApp.search) || {};
-    const api = factory(classifier);
+    let classifier;
+    let registry;
+    if (typeof module === 'object' && module.exports) {
+        classifier = require('./biomarker-classifier.js');
+        registry = require('./biomarker-registry.js');
+        require('./biomarker-expression-rules.js');
+        require('./biomarker-genomic-rules.js');
+    } else {
+        classifier = (root.ClinicalTrialApp && root.ClinicalTrialApp.search) || {};
+        registry = classifier;
+    }
+    const api = factory(classifier, registry);
     if (typeof module === 'object' && module.exports) module.exports = api;
     if (root) {
         root.ClinicalTrialApp = root.ClinicalTrialApp || {};
         root.ClinicalTrialApp.search = Object.assign(root.ClinicalTrialApp.search || {}, api);
     }
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (classifier) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (classifier, registry) {
     'use strict';
 
     const normalize = (value) => classifier.normalizeUnicode(value).toLowerCase().replace(/[\s　]+/g, ' ').trim();
@@ -18,19 +26,23 @@
         const raw = classifier.normalizeUnicode(query).trim();
         let remaining = raw;
         const filters = [];
-        const definitions = [
+        const her2Definitions = [
             { status: 'low', regex: /(?:\bHER\s*-?\s*2\s*[- ]?low\b|HER\s*-?\s*2\s*低表現|HER2LOW)/ig },
             { status: 'nonPositive', regex: /(?:\bHER\s*-?\s*2\s*non[- ]?positive\b|HER\s*-?\s*2\s*非陽性)/ig },
             { status: 'positive', regex: /(?:\bHER\s*-?\s*2\s*\+|\bHER\s*-?\s*2\s*(?:positive|postive|positve)\b|HER\s*-?\s*2\s*陽性|HER2\+)/ig },
             { status: 'negative', regex: /(?:\bHER\s*-?\s*2\s*(?:negative|negatve)\b|HER\s*-?\s*2\s*陰性|HER2-(?!low))/ig },
             { status: 'anyMention', regex: /(?:\bHER\s*-?\s*2\b|\bERBB\s*2\b)/ig }
         ];
-        for (const definition of definitions) {
-            if (definition.regex.test(remaining)) {
-                filters.push({ type: 'biomarker', marker: 'HER2', status: definition.status });
-                remaining = remaining.replace(definition.regex, ' ');
-                break;
-            }
+        for (const definition of her2Definitions) {
+            if (!definition.regex.test(remaining)) continue;
+            filters.push({ type: 'biomarker', marker: 'HER2', status: definition.status });
+            remaining = remaining.replace(definition.regex, ' ');
+            break;
+        }
+        if (registry && typeof registry.parseRegisteredBiomarkerQuery === 'function') {
+            const parsedRegistry = registry.parseRegisteredBiomarkerQuery(remaining);
+            filters.push(...parsedRegistry.filters);
+            remaining = parsedRegistry.remaining;
         }
         return { raw, freeText: remaining.replace(/\s+/g, ' ').trim(), filters };
     };
@@ -82,20 +94,36 @@
     const evaluateTrialSearch = (trial, query) => {
         const parsed = typeof query === 'string' ? parseSearchQuery(query) : query;
         const reasons = [];
+        const biomarkers = {};
         let score = 0;
         for (const filter of parsed.filters || []) {
-            if (filter.type === 'biomarker' && filter.marker === 'HER2') {
-                const classification = classifier.classifyHER2(trial);
-                if (!classifier.matchesHER2Status(classification, filter.status)) return { matched: false, score: 0, reasons: [], parsed, biomarkers: { HER2: classification } };
-                score += filter.status === 'anyMention' ? 30 : 90;
-                reasons.push({ type: 'biomarker', marker: 'HER2', status: filter.status, summary: classification.summary, evidence: classification.mentions.slice(0, 3) });
+            let matched = false;
+            let classification;
+            if (filter.marker === 'HER2') {
+                classification = classifier.classifyHER2(trial);
+                matched = classifier.matchesHER2Status(classification, filter.status);
+            } else if (registry && typeof registry.evaluateBiomarkerFilter === 'function') {
+                const evaluated = registry.evaluateBiomarkerFilter(trial, filter);
+                classification = evaluated.classification;
+                matched = evaluated.matched;
             }
+            biomarkers[filter.marker] = classification;
+            if (!matched) return { matched: false, score: 0, reasons: [], parsed, biomarkers };
+            score += filter.status === 'anyMention' ? 30 : 90;
+            reasons.push({
+                type: 'biomarker',
+                marker: filter.marker,
+                status: filter.status,
+                threshold: filter.threshold,
+                summary: classification && classification.summary,
+                evidence: classification && classification.mentions ? classification.mentions.slice(0, 3) : []
+            });
         }
         const freeTextResult = scoreFreeText(trial, parsed.freeText || '');
-        if (!freeTextResult.matched) return { matched: false, score: 0, reasons: [], parsed };
+        if (!freeTextResult.matched) return { matched: false, score: 0, reasons: [], parsed, biomarkers };
         score += freeTextResult.score;
         reasons.push(...freeTextResult.reasons);
-        return { matched: true, score, reasons, parsed };
+        return { matched: true, score, reasons, parsed, biomarkers };
     };
 
     const searchTrials = (trials, query) => (Array.isArray(trials) ? trials : [])
