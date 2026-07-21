@@ -12,8 +12,8 @@
     registry.registerBiomarker({
         marker: 'MSI/MMR',
         queryRules: [
-            { status: 'deficient', regex: /(?:MSI\s*-?\s*H|MSI\s*high|dMMR|MMR\s*deficient|錯配修復缺陷)/i },
-            { status: 'proficient', regex: /(?:MSS|MSI\s*-?\s*stable|pMMR|MMR\s*proficient|錯配修復正常)/i },
+            { status: 'deficient', regex: /(?:(?:MSI\s*-?\s*H|MSI\s*high)(?:\s*(?:\/|or|或)\s*dMMR)?|dMMR(?:\s*(?:\/|or|或)\s*MSI\s*-?\s*H)?|MMR\s*deficient|錯配修復缺陷)/i },
+            { status: 'proficient', regex: /(?:(?:MSS|MSI\s*-?\s*stable)(?:\s*(?:\/|or|或)\s*pMMR)?|pMMR(?:\s*(?:\/|or|或)\s*MSS)?|MMR\s*proficient|錯配修復正常)/i },
             { status: 'anyMention', regex: /(?:MSI|MMR|microsatellite)/i }
         ],
         detect(text) {
