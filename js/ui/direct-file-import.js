@@ -3,6 +3,15 @@
 
     function byId(id) { return document.getElementById(id); }
 
+    const currentScriptUrl = document.currentScript && document.currentScript.src;
+    const integrityModuleUrl = currentScriptUrl
+        ? new URL('../parsing/pdf-field-integrity.js', currentScriptUrl).href
+        : './js/parsing/pdf-field-integrity.js';
+    const integrityReady = import(integrityModuleUrl).catch((error) => {
+        console.error('PDF field integrity layer failed to load', error);
+        return null;
+    });
+
     async function handleBinaryFile(event) {
         const file = event.target && event.target.files && event.target.files[0];
         if (!file) return;
@@ -22,14 +31,19 @@
         if (status) status.textContent = `正在本機解析 ${file.name}…`;
 
         try {
+            if (format === 'pdf') await integrityReady;
             const parsed = await parsing.parseFile(file, { format });
             if (text) text.value = JSON.stringify(parsed.records, null, 2);
             if (formatSelect) formatSelect.value = 'json';
             const diagnostics = parsed.diagnostics || {};
+            const integrity = diagnostics.fieldIntegrity || {};
             const detail = format === 'pdf'
                 ? `PDF ${diagnostics.pageCount || 0} 頁、擷取 ${diagnostics.extractedCharacterCount || 0} 字元`
                 : `Excel ${diagnostics.sheetCount || 0} 個工作表`;
-            if (status) status.textContent = `${detail}，產生 ${parsed.records.length} 筆候選資料。請按「解析並比對」。`;
+            const reviewText = format === 'pdf' && integrity.reviewCount
+                ? `；其中 ${integrity.reviewCount} 筆因跨欄、截斷或聯絡欄位格式不完整，必須人工確認`
+                : '';
+            if (status) status.textContent = `${detail}，產生 ${parsed.records.length} 筆候選資料${reviewText}。請按「解析並比對」。`;
         } catch (error) {
             if (text) text.value = '';
             if (status) status.textContent = `檔案解析失敗：${error.message}`;
