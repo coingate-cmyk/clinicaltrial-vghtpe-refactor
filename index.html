@@ -13,24 +13,28 @@
       <div>
         <p class="eyebrow">Clinical Trial VGH-TPE Refactor</p>
         <h1>臨床試驗搜尋與匯入工作台</h1>
-        <p class="header-copy">以合成資料測試新的資料正規化、臨床分類、語意搜尋、匯入審查與本機保存架構。</p>
+        <p class="header-copy">以合成資料測試資料正規化、臨床分類、語意搜尋、檔案解析、匯入審查與本機保存架構。</p>
       </div>
-      <div class="version-pill">Public test v0.4</div>
+      <div class="version-pill">Public test v0.5</div>
     </div>
   </header>
 
   <main class="app-shell">
     <section class="toolbar" aria-label="搜尋與篩選">
       <div class="search-row">
-        <input id="searchInput" class="search-input" type="search" placeholder="搜尋 trial code、癌別、藥物、PI，或輸入 HER2+ / HER2 low…" autocomplete="off">
+        <input id="searchInput" class="search-input" type="search" placeholder="搜尋 trial code、癌別、藥物、PI，或輸入 HER2+、MSI-H/dMMR、CPS>=5…" autocomplete="off">
         <button id="clearSearchButton" class="ghost" type="button">清除搜尋</button>
       </div>
       <div class="chips" aria-label="搜尋範例">
-        <button class="chip" data-query="HER2">HER2 全部提及</button>
         <button class="chip" data-query="HER2+">HER2 陽性</button>
-        <button class="chip" data-query="HER2 negative">HER2 陰性</button>
         <button class="chip" data-query="HER2 low">HER2-low</button>
-        <button class="chip" data-query="HER2 non-positive">HER2 非陽性</button>
+        <button class="chip" data-query="CLDN18.2+">CLDN18.2 陽性</button>
+        <button class="chip" data-query="MSI-H/dMMR">MSI-H／dMMR</button>
+        <button class="chip" data-query="MSS/pMMR">MSS／pMMR</button>
+        <button class="chip" data-query="KRAS G12C">KRAS G12C</button>
+        <button class="chip" data-query="BRAF V600E">BRAF V600E</button>
+        <button class="chip" data-query="FGFR2b+">FGFR2b 陽性</button>
+        <button class="chip" data-query="PD-L1 CPS>=5">PD-L1 CPS≥5</button>
         <button class="chip" data-query="HCC 1L">HCC 1L</button>
       </div>
       <div class="filters">
@@ -111,6 +115,9 @@
   <script src="./js/classification/enrollment-status.js"></script>
   <script src="./js/classification/index.js"></script>
   <script src="./js/search/biomarker-classifier.js"></script>
+  <script src="./js/search/biomarker-registry.js"></script>
+  <script src="./js/search/biomarker-expression-rules.js"></script>
+  <script src="./js/search/biomarker-genomic-rules.js"></script>
   <script src="./js/search/search-engine.js"></script>
   <script src="./js/parsing/document-text-parser.js"></script>
   <script src="./js/parsing/table-parser-core.js"></script>
