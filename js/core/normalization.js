@@ -23,10 +23,19 @@
     ];
 
     const STATUS_ALIASES = [
-        { canonical: 'recruiting', patterns: [/recruiting/i, /open to accrual/i, /actively enrolling/i, /收案中/i, /開放收案/i, /可收案/i] },
+        { canonical: 'pending', patterns: [/not yet recruiting/i, /startup/i, /activation pending/i, /尚未收案/i, /準備中/i, /待啟動/i] },
         { canonical: 'temporarily_closed', patterns: [/temporarily closed/i, /suspended/i, /暫停收案/i, /暫停/i] },
         { canonical: 'closed', patterns: [/not recruiting/i, /closed to accrual/i, /terminated/i, /withdrawn/i, /停止收案/i, /關閉/i, /結束收案/i] },
-        { canonical: 'pending', patterns: [/not yet recruiting/i, /startup/i, /activation pending/i, /尚未收案/i, /準備中/i, /待啟動/i] }
+        { canonical: 'recruiting', patterns: [/\brecruiting\b/i, /open to accrual/i, /actively enrolling/i, /收案中/i, /開放收案/i, /可收案/i] }
+    ];
+
+    const AVAILABILITY_ALIASES = [
+        { canonical: 'pending', patterns: [/not yet recruiting/i, /startup/i, /activation pending/i, /尚未收案/i, /準備中/i, /待啟動/i] },
+        { canonical: 'paused', patterns: [/temporarily closed/i, /suspended/i, /暫停收案/i, /暫停/i] },
+        { canonical: 'full', patterns: [/\bfull\b/i, /no slots?/i, /quota filled/i, /accrual complete/i, /滿額/i, /額滿/i, /名額已滿/i, /無名額/i] },
+        { canonical: 'closed', patterns: [/not recruiting/i, /closed to accrual/i, /terminated/i, /withdrawn/i, /停止收案/i, /關閉/i, /結束收案/i] },
+        { canonical: 'limited', patterns: [/limited slots?/i, /few slots?/i, /waitlist/i, /少量名額/i, /名額有限/i, /剩餘\s*\d+\s*名/i] },
+        { canonical: 'available', patterns: [/slots? available/i, /open slots?/i, /available for enrollment/i, /有名額/i, /尚有名額/i, /可收案/i, /開放收案/i] }
     ];
 
     function normalizeUnicode(value) {
@@ -117,6 +126,18 @@
         return 'unknown';
     }
 
+    function normalizeAvailability(value) {
+        const text = normalizeInlineText(value);
+        if (!text) return 'unknown';
+        const canonicalValues = new Set(['available', 'limited', 'full', 'paused', 'closed', 'pending', 'unknown']);
+        const compact = text.toLowerCase().replace(/[\s_-]+/g, ' ').trim();
+        if (canonicalValues.has(compact.replace(/ /g, '_'))) return compact.replace(/ /g, '_');
+        for (const rule of AVAILABILITY_ALIASES) {
+            if (rule.patterns.some((pattern) => pattern.test(text))) return rule.canonical;
+        }
+        return 'unknown';
+    }
+
     function normalizeDate(value) {
         if (!value) return '';
         if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
@@ -156,6 +177,7 @@
         const sourceId = normalizeInlineText(firstDefined(input, ['sourceId', 'rowId', 'documentId']) || firstDefined(input.source, ['sourceId', 'rowId', 'documentId']));
         const generatedId = code ? `trial:${compactCode(code)}` : (sourceId ? `source:${sourceId}` : '');
         const statusRaw = firstDefined(input, ['statusRaw', 'status', 'enrollmentStatus', 'recruitmentStatus', 'studyStatus']);
+        const availabilityRaw = firstDefined(input, ['availabilityRaw', 'availability', 'slotStatus', 'slotAvailability', 'capacityStatus', 'localAvailability', 'localStatus']);
 
         return {
             schemaVersion: 1,
@@ -167,6 +189,8 @@
             phase: normalizePhase(firstDefined(input, ['phase', 'studyPhase'])),
             status: normalizeEnrollmentStatus(statusRaw),
             statusRaw: normalizeInlineText(statusRaw),
+            availability: normalizeAvailability(availabilityRaw),
+            availabilityRaw: normalizeInlineText(availabilityRaw),
             active: normalizeBoolean(firstDefined(input, ['active', 'isActive', 'canEnroll'])),
             cancerTypes,
             treatmentLines: normalizeList(firstDefined(input, ['treatmentLines', 'line', 'lines', 'therapyLine'])),
@@ -197,8 +221,8 @@
     }
 
     return {
-        CANCER_ALIASES, STATUS_ALIASES, normalizeUnicode, normalizeWhitespace, normalizeInlineText,
+        CANCER_ALIASES, STATUS_ALIASES, AVAILABILITY_ALIASES, normalizeUnicode, normalizeWhitespace, normalizeInlineText,
         normalizeCode, compactCode, normalizeBoolean, normalizeList, normalizeCancerLabel,
-        normalizePhase, normalizeEnrollmentStatus, normalizeDate, normalizeCancerTypes, normalizeTrial
+        normalizePhase, normalizeEnrollmentStatus, normalizeAvailability, normalizeDate, normalizeCancerTypes, normalizeTrial
     };
 });
