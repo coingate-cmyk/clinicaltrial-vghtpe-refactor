@@ -5,6 +5,7 @@
     const release = app.release || {};
     const backup = app.backup || {};
     const parsing = app.parsing || {};
+    const core = app.core || {};
     const el = (id) => document.getElementById(id);
 
     function managerActive() {
@@ -86,6 +87,28 @@
         location.reload();
     }
 
+    function decorateOperationalCards() {
+        if (typeof core.trialIdentityKey !== 'function') return;
+        const byKey = new Map(release.readTrials().map((trial) => [core.trialIdentityKey(trial), trial]));
+        document.querySelectorAll('#trialGrid .trial-card').forEach((card) => {
+            if (card.querySelector('.release-card-extra')) return;
+            const trial = byKey.get(card.dataset.key);
+            if (!trial) return;
+            const contacts = trial.contacts || {};
+            const enrollment = trial.siteEnrollment || {};
+            const parts = [];
+            if (contacts.lineId) parts.push(`LINE ID：${contacts.lineId}`);
+            if (enrollment.targetCount != null || enrollment.enrolledCount != null || enrollment.remainingSlots != null) {
+                parts.push(`Target／已收案／剩餘：${enrollment.targetCount ?? '-'}／${enrollment.enrolledCount ?? '-'}／${enrollment.remainingSlots ?? '-'}`);
+            }
+            if (!parts.length) return;
+            const node = document.createElement('p');
+            node.className = 'contact-line release-card-extra';
+            node.textContent = parts.join('　｜　');
+            card.querySelector('.card-side')?.before(node);
+        });
+    }
+
     function updateStatus(message) {
         const trials = release.readTrials ? release.readTrials() : [];
         const snapshot = release.readSnapshot ? release.readSnapshot() : null;
@@ -116,6 +139,11 @@
         if (resetButton) resetButton.addEventListener('click', resetSynthetic, true);
         const clearButton = el('clearWorkspaceButton');
         if (clearButton) clearButton.addEventListener('click', clearWorkspace);
+        const grid = el('trialGrid');
+        if (grid && typeof MutationObserver !== 'undefined') {
+            new MutationObserver(decorateOperationalCards).observe(grid, { childList: true, subtree: true });
+        }
+        setTimeout(decorateOperationalCards, 0);
         updateStatus();
         window.addEventListener('storage', () => updateStatus('偵測到另一個分頁更新本機資料。'));
         document.addEventListener('click', (event) => {
