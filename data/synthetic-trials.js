@@ -18,7 +18,7 @@
             sponsor: 'Synthetic Pharma B', phase: '2', status: 'Recruiting', active: true,
             cancerType: 'gastric cancer', treatmentLines: ['1L', 'metastatic'],
             interventions: ['Example immunotherapy'],
-            inclusion: 'HER2-negative gastric or GEJ adenocarcinoma. CPS 1 or greater.',
+            inclusion: 'HER2-negative gastric or GEJ adenocarcinoma. PD-L1 CPS 1 or greater.',
             pi: 'Synthetic Investigator B', nurse: 'Synthetic Coordinator B'
         },
         {
@@ -87,6 +87,62 @@
             cancerType: 'solid tumors', treatmentLines: ['later-line'],
             interventions: ['Example precision therapy'],
             inclusion: 'Advanced solid tumors with a prespecified genomic alteration. HER2 status is not required.'
+        },
+        {
+            code: 'SYN-GC-CLDN-011',
+            title: 'CLDN18.2-positive first-line gastric study',
+            sponsor: 'Synthetic Pharma I', phase: '3', status: 'Recruiting', active: true,
+            cancerType: 'gastric cancer', treatmentLines: ['1L', 'metastatic'],
+            interventions: ['Example CLDN18.2 antibody'],
+            inclusion: 'CLDN18.2 positive with membranous staining in at least 75% of tumor cells.'
+        },
+        {
+            code: 'SYN-CRC-MSIH-012',
+            title: 'MSI-H or dMMR colorectal immunotherapy study',
+            sponsor: 'Synthetic Pharma J', phase: '2', status: 'Recruiting', active: true,
+            cancerType: 'colorectal cancer', treatmentLines: ['later-line', 'metastatic'],
+            interventions: ['Example checkpoint inhibitor'],
+            inclusion: 'MSI-H or dMMR metastatic colorectal cancer is required.'
+        },
+        {
+            code: 'SYN-CRC-PMMR-013',
+            title: 'MSS and pMMR colorectal combination study',
+            sponsor: 'Synthetic Pharma K', phase: '2', status: 'Pending', active: true,
+            cancerType: 'colorectal cancer', treatmentLines: ['later-line', 'metastatic'],
+            interventions: ['Example combination'],
+            inclusion: 'MSS and pMMR metastatic colorectal cancer.'
+        },
+        {
+            code: 'SYN-CRC-KRASG12C-014',
+            title: 'KRAS G12C colorectal targeted therapy study',
+            sponsor: 'Synthetic Pharma L', phase: '2', status: 'Recruiting', active: true,
+            cancerType: 'colorectal cancer', treatmentLines: ['later-line', 'metastatic'],
+            interventions: ['Example KRAS inhibitor'],
+            inclusion: 'KRAS G12C mutation confirmed by central testing.'
+        },
+        {
+            code: 'SYN-CRC-BRAFV600E-015',
+            title: 'BRAF V600E colorectal precision therapy study',
+            sponsor: 'Synthetic Pharma M', phase: '2', status: 'Recruiting', active: true,
+            cancerType: 'colorectal cancer', treatmentLines: ['later-line', 'metastatic'],
+            interventions: ['Example BRAF combination'],
+            inclusion: 'BRAF V600E mutation is required.'
+        },
+        {
+            code: 'SYN-GC-FGFR2B-016',
+            title: 'FGFR2b-positive gastric antibody study',
+            sponsor: 'Synthetic Pharma N', phase: '3', status: 'Recruiting', active: true,
+            cancerType: 'gastric cancer', treatmentLines: ['1L', 'metastatic'],
+            interventions: ['Example FGFR2b antibody'],
+            inclusion: 'FGFR2b-positive gastric or GEJ adenocarcinoma by central IHC.'
+        },
+        {
+            code: 'SYN-GC-CPS10-017',
+            title: 'PD-L1 selected gastric immunotherapy study',
+            sponsor: 'Synthetic Pharma O', phase: '2', status: 'Recruiting', active: true,
+            cancerType: 'gastric cancer', treatmentLines: ['1L', 'metastatic'],
+            interventions: ['Example immunotherapy'],
+            inclusion: 'PD-L1 CPS >= 10 is required.'
         }
     ];
 })(typeof globalThis !== 'undefined' ? globalThis : this);
