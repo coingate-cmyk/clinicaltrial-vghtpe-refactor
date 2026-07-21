@@ -16,7 +16,8 @@ const tests = [
     'pdf-browser-parser.test.js',
     'workbook-parser.test.js',
     'pdf-table-parser.test.js',
-    'pdf-field-integrity.test.js'
+    'pdf-field-integrity.test.js',
+    'pdf-contact-heuristics.test.js'
 ];
 
 let failed = false;
