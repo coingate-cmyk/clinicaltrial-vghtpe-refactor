@@ -1,61 +1,61 @@
-# Clinical Trial VGH-TPE Refactor
+# Clinical Trial VGH-TPE Operations Workspace
 
-Public-safe workspace for rebuilding the clinical-trial parsing, classification, search, and review system.
+Version 1.0.0 is a public-safe, browser-based clinical-trial search and local operations workspace. It separates extraction, normalization, clinical classification, search, import review, persistence, and UI so the legacy application can be replaced in reversible stages.
 
-The repository starts with a synthetic-data browser demo and an independent HER2 search core. It is designed to let us restructure the legacy application without changing the working production site.
+## Formal release capabilities
 
-## Priorities
+- Structured search across trial code, cancer type, treatment line, sponsor, PI, research nurse, phone, email, LINE ID, eligibility text, and historical enrollment status.
+- Clinically meaningful HER2 search semantics (`HER2`, `HER2+`, `HER2 negative`, `HER2 low`, `HER2 non-positive`).
+- Local PDF/XLSX/JSON/CSV/text import with candidate review before writing.
+- Dedicated Study Status PDF handling for cross-page rows, wrapped study codes, and complex contact blocks.
+- Field-level conflict review. Protected operational fields require an explicit decision before replacement.
+- Read-only mode by default. Add, edit, import, delete, restore, and reset actions require an explicit local management session.
+- Versioned JSON backup, restore validation, automatic pre-write snapshots, and one-step local undo.
+- Local clinical tools: renal function/BSA, CTCAE quick reference, AJCC staging, and RECIST/TLS calculator.
 
-1. Separate PDF/XLSX extraction from clinical classification.
-2. Preserve evidence, source field, context, rule, and confidence for inferred values.
-3. Replace substring-only search with clinically meaningful structured search.
-4. Keep persistence behind a stable repository interface.
-5. Migrate in reversible stages with regression tests.
+## Data and security model
 
-## Browser demo
+This repository and GitHub Pages site are public. Only synthetic or fully de-identified fixtures may be committed.
 
-Open `index.html` directly in a browser. The demo contains synthetic examples only.
+The browser application stores imported data in the current browser's local storage. A local management session is a safety interlock for the UI; it is **not authentication**, does not identify a user, and does not provide multi-user access control. Do not treat the public site as an institutional production database.
 
-Try:
+For real multi-user deployment, authentication, authorization, audit logging, backups, and institutional storage must be provided by an internal deployment layer. See `docs/privacy-and-deployment.md`.
 
-- `HER2` — any HER2 mention
-- `HER2+` — explicitly eligible HER2-positive population
-- `HER2 negative` — explicitly eligible HER2-negative population
-- `HER2 low` — explicitly eligible HER2-low population
-- `HER2 non-positive` — negative/low population or explicit exclusion of HER2-positive disease
+## Browser use
 
-Each result displays the evidence and context that caused the match.
+Open the GitHub Pages site or `index.html`. The default view is read-only and starts with synthetic examples. Enable the local management session only when you need to change data in that browser.
+
+Before importing operational data:
+
+1. Download a versioned backup.
+2. Import the file and review candidate counts.
+3. Inspect every item marked for manual review.
+4. Resolve protected field conflicts explicitly.
+5. Apply only selected rows.
+6. Search several known trial codes and contacts after import.
 
 ## Tests
+
+No package installation is required. With Node.js 18 or later:
 
 ```bash
 npm test
 ```
 
-No package installation is required. The tests use Node's built-in assertion library.
+The suite covers search semantics, normalization, clinical rules, parsers, merge/conflict behavior, repositories, PDF field integrity, contact heuristics, versioned backup, snapshots, and local management-session state.
 
-## Current structure
-
-```text
-index.html                         Synthetic-data search demo
-js/search/biomarker-classifier.js HER2 context and status classification
-js/search/search-engine.js        Structured query parsing and ranking
-tests/search-core.test.js         Regression tests
-docs/architecture-roadmap.md      Refactor layers and sequence
-docs/search-semantics.md          Search behavior contract
-scripts/integrate_search_core.py  Temporary legacy-app integration helper
-```
-
-## Target structure
+## Architecture
 
 ```text
 js/
-├─ core/
-├─ classification/
-├─ parsing/
-├─ search/
-├─ repositories/
-└─ ui/
+├─ core/             schema, normalization, merge, backup and release services
+├─ classification/   cancer type, treatment line, status and slot rules
+├─ parsing/          document, table, PDF, spreadsheet and import pipeline
+├─ search/           structured query parsing and ranking
+├─ repositories/     memory and local-storage repositories
+└─ ui/               browser workspace, formal review and release controls
 ```
 
-Only synthetic or fully de-identified fixtures should be committed to this public repository. Internal source files and deployment configuration stay outside this project.
+## Release policy
+
+Changes are developed on a branch, regression-tested, reviewed for accidental sensitive content, and squash-merged. The original `clinicaltrialvghtpe` repository remains independent and is not modified by this project.

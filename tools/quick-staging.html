@@ -5,16 +5,16 @@
 <main class="max-w-6xl mx-auto p-6">
   <div class="flex justify-between gap-3 flex-wrap"><a class="text-blue-700" href="./index.html">← 回工具首頁</a><a class="text-blue-700" href="../index.html#clinical-tools">回臨床試驗工作台</a></div>
   <h1 class="text-3xl font-bold mt-6">AJCC 腫瘤分期速查器</h1>
-  <p class="text-slate-600 mt-2">7.0 規則自動載入；T/N/M 下拉選單會依癌種與版本自動縮小，避免選到不存在的組合。不使用遠端試驗資料。</p>
-  <p class="text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded p-3 mt-3">Internal quick-check only. 請以院內正式資料交叉確認。</p>
+  <p class="text-slate-600 mt-2">7.0 規則由本專案本機載入；T/N/M 下拉選單會依癌種與版本自動縮小，避免選到不存在的組合。不使用遠端試驗資料。</p>
+  <p class="text-sm bg-amber-50 border border-amber-200 text-amber-900 rounded p-3 mt-3">Internal quick-check only. 規則包並非完整 AJCC 授權內容；請以院內正式資料與原始手冊交叉確認。</p>
   <div class="grid lg:grid-cols-2 gap-6 mt-6">
     <section class="bg-white rounded-xl border shadow p-5"><h2 class="text-xl font-bold mb-4">查詢</h2><div class="grid grid-cols-2 gap-3"><label class="col-span-2 text-sm font-medium">Cancer site<select id="site" class="mt-1 w-full border rounded p-2"></select></label><label class="text-sm font-medium">Version<select id="ver" class="mt-1 w-full border rounded p-2"><option value="AJCC6">6.0</option><option value="AJCC7" selected>7.0</option><option value="AJCC8">8.0</option></select></label><label class="text-sm font-medium">T<select id="t" class="mt-1 w-full border rounded p-2"></select></label><label class="text-sm font-medium">N<select id="n" class="mt-1 w-full border rounded p-2"></select></label><label class="text-sm font-medium">M<select id="m" class="mt-1 w-full border rounded p-2"></select></label></div><button onclick="lookup()" class="mt-5 bg-emerald-700 text-white rounded-lg px-4 py-2 font-bold">查詢 stage</button><div id="hint" class="mt-3 text-sm text-slate-500"></div></section>
     <section class="bg-white rounded-xl border shadow p-5"><h2 class="text-xl font-bold mb-4">結果</h2><div id="result"></div><button onclick="copyResult()" class="mt-3 bg-slate-200 px-3 py-2 rounded font-bold">複製測試回報</button></section>
   </div>
-  <section class="mt-6 bg-white border rounded-xl p-4 text-sm"><b>規則狀態：</b><span id="info">載入中...</span><div class="mt-2 text-slate-600">自動載入既有 AJCC7 規則；也可手動匯入補充 CSV，補充規則只存在本機。</div><input type="file" accept=".csv,text/csv" class="block w-full border rounded p-2 bg-slate-50 mt-3" onchange="loadFile(event)"><textarea id="csvbox" class="w-full h-24 border rounded p-2 font-mono text-xs mt-2" placeholder="site,edition,t,n,m,stage,note"></textarea><div class="mt-2 flex gap-2"><button onclick="importCSV()" class="bg-blue-700 text-white px-3 py-2 rounded font-bold">匯入補充規則</button><button onclick="clearRules()" class="bg-slate-200 px-3 py-2 rounded font-bold">清除手動匯入</button></div></section>
+  <section class="mt-6 bg-white border rounded-xl p-4 text-sm"><b>規則狀態：</b><span id="info">載入中...</span><div class="mt-2 text-slate-600">自動載入本專案 AJCC7 GI 規則；也可手動匯入補充 CSV，補充規則只存在本機。</div><input type="file" accept=".csv,text/csv" class="block w-full border rounded p-2 bg-slate-50 mt-3" onchange="loadFile(event)"><textarea id="csvbox" class="w-full h-24 border rounded p-2 font-mono text-xs mt-2" placeholder="site,edition,t,n,m,stage,note"></textarea><div class="mt-2 flex gap-2"><button onclick="importCSV()" class="bg-blue-700 text-white px-3 py-2 rounded font-bold">匯入補充規則</button><button onclick="clearRules()" class="bg-slate-200 px-3 py-2 rounded font-bold">清除手動匯入</button></div></section>
 </main>
 <script>
-const RULES_URL='https://raw.githubusercontent.com/coingate-cmyk/clinicaltrialvghtpe/main/tools/staging_rules_7.csv';
+const RULES_URL='./staging_rules_7.csv';
 const baseSites=['Esophagus / EGJ - squamous','Esophagus / EGJ - adenocarcinoma','Stomach','Small intestine','Colon','Rectum','Appendix - carcinoma','GIST','HCC / Liver','Intrahepatic bile duct','Perihilar bile duct','Distal bile duct','Gallbladder','Ampulla of Vater','Exocrine pancreas','NET - stomach','NET - duodenum / ampulla','NET - jejunum / ileum','NET - appendix','NET - colon / rectum','NET - pancreas'];
 const ORD={t:['Any','Tis','T0','T1','T1a','T1b','T2','T2a','T2b','T3','T3a','T3b','T4','T4a','T4b','TX'],n:['Any','N0','N1','N1a','N1b','N1c','N2','N2a','N2b','N3','N3a','N3b','NX'],m:['M0','M1','M1a','M1b','Any']};
 let staticRules=[];
@@ -42,5 +42,4 @@ function clearRules(){localStorage.removeItem('staging_rules_user');refreshSites
 function copyResult(){const q=window.lastQ||{},f=window.lastFound;const txt=`Staging quick-check report\nQuery: ${q.site||''} version ${vl(q.edition)||''} ${q.t||''}/${q.n||''}/${q.m||''}\nResult: ${f?f.stage:'not found'}\nNote: ${f?(f.note||''):''}`;navigator.clipboard&&navigator.clipboard.writeText(txt)}
 async function boot(){refreshSites();refreshCascade('site');lookup();try{const r=await fetch(RULES_URL,{cache:'no-store'});if(r.ok)staticRules=parseCSV(await r.text())}catch(e){}refreshSites();setInfo();refreshCascade('site');lookup()}
 setInfo();boot();
-</script>
-</body></html>
+</script></body></html>
