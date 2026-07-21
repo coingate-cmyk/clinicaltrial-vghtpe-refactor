@@ -14,7 +14,7 @@
     const definitions = new Map();
     const normalize = (value) => base.normalizeUnicode(value).replace(/[\t ]+/g, ' ').trim();
     const unique = (values) => Array.from(new Set(values));
-    const safeTest = (regex, text) => new RegExp(regex.source, regex.flags.replace(/g/g, '')).test(text);
+    const safeRegex = (regex) => new RegExp(regex.source, regex.flags.replace(/g/g, ''));
 
     function registerBiomarker(definition) {
         if (!definition || !definition.marker) throw new TypeError('A biomarker marker is required.');
@@ -36,15 +36,18 @@
         const filters = [];
         for (const definition of definitions.values()) {
             for (const queryRule of definition.queryRules || []) {
-                if (!safeTest(queryRule.regex, remaining)) continue;
-                filters.push({
+                const regex = safeRegex(queryRule.regex);
+                const match = regex.exec(remaining);
+                if (!match) continue;
+                const extracted = queryRule.extract ? queryRule.extract(match) : {};
+                filters.push(Object.assign({
                     type: 'biomarker',
                     marker: definition.marker,
                     status: queryRule.status,
                     operator: queryRule.operator || '',
                     threshold: queryRule.threshold == null ? null : Number(queryRule.threshold)
-                });
-                remaining = remaining.replace(queryRule.regex, ' ');
+                }, extracted));
+                remaining = remaining.replace(regex, ' ');
                 break;
             }
         }
