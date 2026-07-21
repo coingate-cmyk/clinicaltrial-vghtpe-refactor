@@ -30,7 +30,7 @@ function pageWithRows(rows) {
 const clean = integrity.extractPdfTableRecordsStrict(pageWithRows([
     line(680, [
         item('PDF-080', 10, 45),
-        item('First-line gastric study', 110, 120),
+        item('First-line gastric study', 110, 110),
         item('Amy Lin', 280, 52),
         item('amy.lin_080', 410, 65),
         item('02-12345678', 520, 62)
@@ -46,8 +46,8 @@ assert.deepStrictEqual(clean.records[0]._parseIssues, []);
 const crossed = integrity.extractPdfTableRecordsStrict(pageWithRows([
     line(680, [
         item('PDF-081', 10, 45),
-        item('Second-line gastric study', 110, 125),
-        item('Amy Lin', 280, 105),
+        item('Second-line gastric study', 110, 110),
+        item('Amy Lin', 280, 120),
         item('amy081', 410, 45),
         item('02-87654321', 520, 62)
     ])
@@ -74,7 +74,7 @@ assert.strictEqual(wrapped.records[0]._parseIssues.some((issue) => issue.code ==
 const invalidLineId = integrity.extractPdfTableRecordsStrict(pageWithRows([
     line(680, [
         item('PDF-083', 10, 45),
-        item('Contact validation study', 110, 115),
+        item('Contact validation study', 110, 110),
         item('Amy Lin', 280, 52),
         item('amy lin', 410, 50),
         item('02-33334444', 520, 62)
